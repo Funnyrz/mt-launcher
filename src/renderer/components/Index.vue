@@ -13,7 +13,8 @@
 
 <script>
 const {shell} = require('electron')
-var iconPromise = require('icon-promise');
+const iconPromise = require('icon-promise');
+
 export default {
   name: 'index-page',
   components: {},
@@ -23,7 +24,7 @@ export default {
     }
   },
   created() {
-    this.apps = JSON.parse(localStorage.getItem("apps"))
+    this.apps = localStorage.getItem("apps") === null ? [] : JSON.parse(localStorage.getItem("apps"))
     this.dropFile()
   },
   methods: {
@@ -37,16 +38,13 @@ export default {
     },
     // 文件拖动
     dropFile() {
-      const fs = require('fs')
       document.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        let apps = localStorage.getItem("apps") === null ? [] : JSON.parse(localStorage.getItem("apps"))
         for (const f of e.dataTransfer.files) {
           const filePath = f.path
           const name = f.name
           const retLnk = shell.readShortcutLink(filePath)
-          console.log("retLnk" + retLnk)
           const exePath = retLnk.target;
           this.getIconInfo(exePath).then((data) => {
             let appName = name.replace(".lnk", '')
@@ -67,6 +65,7 @@ export default {
 
 <style>
 .parent {
+  padding-top: 10px;
   display: flex;
   flex-flow: row wrap;
   align-content: center;
@@ -88,7 +87,7 @@ export default {
   padding: 15px 30px;
   display: inline-block;
   vertical-align: middle;
-  max-width: 40%;
+  max-width: 50%;
   cursor: pointer;
 }
 
@@ -98,6 +97,7 @@ export default {
 
 .app:hover {
   background: rgba(102, 159, 184, 0.66);
+  border-radius: 20px;
 }
 
 </style>

@@ -23,10 +23,9 @@ function createWindow() {
         useContentSize: true,
         width: 1000,
         // frame: false,
-        maximizable:true,
+        maximizable: true,
     })
     mainWindow.loadURL(winURL)
-    mainWindow.webContents.openDevTools()
     mainWindow.on('closed', () => {
         mainWindow = null
     })
@@ -48,7 +47,6 @@ app.on('activate', () => {
 // 注册快捷键
 app.on('ready', async () => {
     globalShortcut.register('Alt+D', function () {
-        mainWindow.webContents.openDevTools()
         mainWindow.show()
     })
 

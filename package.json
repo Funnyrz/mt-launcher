@@ -19,6 +19,7 @@
   "build": {
     "productName": "mt-launcher",
     "appId": "com.mitatang",
+    "asar": false,
     "directories": {
       "output": "build"
     },
