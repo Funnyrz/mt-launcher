@@ -54,6 +54,7 @@
     "axios": "^0.18.0",
     "element-ui": "^2.15.9",
     "icon-promise": "^1.1.1",
+    "multispinner": "^0.2.1",
     "vue": "^2.7.5",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",

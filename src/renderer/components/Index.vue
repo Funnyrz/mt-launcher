@@ -75,31 +75,25 @@ export default {
 .child {
   margin: 10px 0;
   box-sizing: border-box;
-  flex: 0 0 20%;
-  text-align: center;
-}
-
-.child {
-  margin: 10px 0;
-  box-sizing: border-box;
-  flex: 0 0 20%;
+  flex: 0 0 14.285%;
   text-align: center;
 }
 
 .desc {
-  color: #ffffff
+  color: #ffffff;
+  font-size: 14px;
 }
 
 .app {
   padding: 15px 30px;
   display: inline-block;
   vertical-align: middle;
-  max-width: 160px;
+  max-width: 40%;
   cursor: pointer;
 }
 
 .app > img {
-  width: 100px;
+  width: 100%;
 }
 
 .app:hover {
