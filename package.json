@@ -54,7 +54,9 @@
   "dependencies": {
     "axios": "^0.18.0",
     "element-ui": "^2.15.9",
+    "fuse.js": "^6.6.2",
     "icon-promise": "^1.1.1",
+    "lndb": "^0.0.3",
     "multispinner": "^0.2.1",
     "vue": "^2.7.5",
     "vue-electron": "^1.0.6",

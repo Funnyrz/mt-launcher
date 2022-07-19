@@ -1,10 +1,25 @@
 <template>
-  <div class="parent">
-    <div class="child" v-for="app in apps" v-on:click.once="openApp(app)">
-      <div class="app">
-        <img :src="app.icon" alt="icon">
-        <div class="desc">
-          {{ app.appName }}
+  <div>
+    <div class="search">
+      <el-input v-model="keywords" placeholder="搜索" @input="search"></el-input>
+    </div>
+    <div class="parent" v-if="!isSearch">
+      <div class="child" v-for="app in apps" v-on:click.once="openApp(app)">
+        <div class="app">
+          <img :src="app.icon" alt="icon">
+          <div class="desc">
+            {{ app.appName }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="parent" v-if="isSearch">
+      <div class="child" v-for="app in apps" v-on:click.once="openApp(app)">
+        <div class="app">
+          <img :src="app.item.icon" alt="icon">
+          <div class="desc">
+            {{ app.item.appName }}
+          </div>
         </div>
       </div>
     </div>
@@ -14,20 +29,37 @@
 <script>
 const {shell} = require('electron')
 const iconPromise = require('icon-promise');
-
+const {lnk} = require('./util/dbUtil')
+const Fuse = require('fuse.js')
 export default {
   name: 'index-page',
   components: {},
   data() {
     return {
       apps: [],
+      keywords: '',
+      isSearch: false,
     }
   },
   created() {
-    this.apps = localStorage.getItem("apps") === null ? [] : JSON.parse(localStorage.getItem("apps"))
+    this.loadData()
     this.dropFile()
   },
   methods: {
+    search() {
+      if (this.keywords === '') {
+        this.isSearch = false
+        this.loadData()
+      } else {
+        const options = {
+          includeScore: true,
+          keys: ['appName']
+        }
+        const fuse = new Fuse(this.apps, options)
+        this.apps = fuse.search(this.keywords)
+        this.isSearch = true
+      }
+    },
     async getIconInfo(exePath) {
       const {Base64ImageData} = await iconPromise.getIcon256(exePath)
       return "data:image/png;base64," + Base64ImageData
@@ -50,7 +82,7 @@ export default {
             let appName = name.replace(".lnk", '')
             let app = {"appName": appName, "lnk": filePath, "icon": data}
             this.apps.splice(this.apps.length, 1, app)
-            localStorage.setItem("apps", JSON.stringify(this.apps))
+            lnk.set('apps', this.apps)
           })
         }
       });
@@ -59,13 +91,15 @@ export default {
         e.stopPropagation();
       });
     },
+    loadData() {
+      this.apps = Object.keys(lnk.get('apps')).length === 0 ? [] : lnk.get('apps').data
+    }
   }
 }
 </script>
 
 <style>
 .parent {
-  padding-top: 10px;
   display: flex;
   flex-flow: row wrap;
   align-content: center;
@@ -98,6 +132,13 @@ export default {
 .app:hover {
   background: rgba(102, 159, 184, 0.66);
   border-radius: 20px;
+}
+
+.search {
+  padding-top: 10px;
+  width: 40%;
+  position: relative;
+  margin: auto;
 }
 
 </style>
