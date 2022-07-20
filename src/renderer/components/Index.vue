@@ -4,7 +4,7 @@
       <el-input v-model="keywords" placeholder="搜索" @input="search"></el-input>
     </div>
     <div class="parent" v-if="!isSearch">
-      <div class="child" v-for="app in apps" v-on:click.once="openApp(app)">
+      <div class="child" v-for="app in apps" v-on:dblclick="openApp(app)">
         <div class="app">
           <img :src="app.icon" alt="icon">
           <div class="desc">
@@ -31,6 +31,8 @@ const {shell} = require('electron')
 const iconPromise = require('icon-promise');
 const {lnk} = require('./util/dbUtil')
 const Fuse = require('fuse.js')
+import {pinyin} from 'pinyin-pro';
+
 export default {
   name: 'index-page',
   components: {},
@@ -42,28 +44,29 @@ export default {
     }
   },
   created() {
-    this.loadData()
+    this.apps = this.getLnkData()
+    console.log(this.apps)
     this.dropFile()
   },
   methods: {
     search() {
       if (this.keywords === '') {
         this.isSearch = false
-        this.loadData()
+        this.apps = this.getLnkData()
       } else {
         const options = {
           includeScore: true,
-          keys: ['appName']
+          keys: ['appName','word']
         }
-        const fuse = new Fuse(this.apps, options)
+        const fuse = new Fuse(this.getLnkData(), options)
         this.apps = fuse.search(this.keywords)
+        console.log(this.apps)
         this.isSearch = true
       }
     },
     async getIconInfo(exePath) {
       const {Base64ImageData} = await iconPromise.getIcon256(exePath)
       return "data:image/png;base64," + Base64ImageData
-
     },
     async openApp(app) {
       shell.openExternal(app.lnk)
@@ -80,7 +83,8 @@ export default {
           const exePath = retLnk.target;
           this.getIconInfo(exePath).then((data) => {
             let appName = name.replace(".lnk", '')
-            let app = {"appName": appName, "lnk": filePath, "icon": data}
+            const word = pinyin(appName, {pattern: 'first', toneType: 'none'})
+            let app = {"appName": appName, "lnk": filePath, "icon": data, "word": word}
             this.apps.splice(this.apps.length, 1, app)
             lnk.set('apps', this.apps)
           })
@@ -91,8 +95,8 @@ export default {
         e.stopPropagation();
       });
     },
-    loadData() {
-      this.apps = Object.keys(lnk.get('apps')).length === 0 ? [] : lnk.get('apps').data
+    getLnkData() {
+      return Object.keys(lnk.get('apps')).length === 0 ? [] : lnk.get('apps').data
     }
   }
 }

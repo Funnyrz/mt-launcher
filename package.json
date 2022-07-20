@@ -58,6 +58,7 @@
     "icon-promise": "^1.1.1",
     "lndb": "^0.0.3",
     "multispinner": "^0.2.1",
+    "pinyin-pro": "^3.11.0",
     "vue": "^2.7.5",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",
