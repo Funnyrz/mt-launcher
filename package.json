@@ -60,6 +60,7 @@
     "multispinner": "^0.2.1",
     "pinyin-pro": "^3.11.0",
     "vue": "^2.7.5",
+    "vue-context-menu": "^2.0.6",
     "vue-electron": "^1.0.6",
     "vue-router": "^3.0.1",
     "vuex": "^3.0.1",
