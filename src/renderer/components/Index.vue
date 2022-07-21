@@ -111,7 +111,7 @@ export default {
           const exePath = retLnk.target;
           this.getIconInfo(exePath).then((data) => {
             let appName = name.replace(".lnk", '')
-            const word = pinyin(appName, {pattern: 'first', toneType: 'none'})
+            const word = pinyin(appName, {pattern: 'first', toneType: 'none'}).replace(/ /g,'')
             let app = {"appName": appName, "lnk": filePath, "icon": data, "word": word, "exePath": exePath}
             this.apps.splice(this.apps.length, 1, app)
             lnk.set('apps', this.apps)
@@ -163,7 +163,7 @@ export default {
 
 .app:hover {
   background: rgba(102, 159, 184, 0.66);
-  border-radius: 20px;
+  border-radius: 14px;
 }
 
 .search {
