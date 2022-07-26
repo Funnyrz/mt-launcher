@@ -7,9 +7,9 @@
       <div class="child" v-for="(app,index) in apps" v-on:dblclick="openApp(app)"
            @contextmenu.prevent="$refs.ctxMenu.open(this,{'index':index,'data':app})">
         <div class="app">
-          <img :src="app.icon" alt="icon">
+          <img :src="app.Icon" alt="icon">
           <div class="desc">
-            {{ app.appName }}
+            {{ app.LegalName }}
           </div>
         </div>
       </div>
@@ -17,9 +17,9 @@
     <div class="parent" v-if="isSearch">
       <div class="child" v-for="app in apps" v-on:click.once="openApp(app)">
         <div class="app">
-          <img :src="app.item.icon" alt="icon">
+          <img :src="app.item.Icon" alt="icon">
           <div class="desc">
-            {{ app.item.appName }}
+            {{ app.item.LegalName }}
           </div>
         </div>
       </div>
@@ -28,18 +28,23 @@
       <li @click="openApp($refs.ctxMenu.locals.data)">打开</li>
       <li @click="openDir()">打开文件夹</li>
       <li @click="removeApp($refs.ctxMenu.locals.index)">删除</li>
-      <li @click="uninstallApp($refs.ctxMenu.locals.index)">卸载</li>
+      <li @click="uninstallApp($refs.ctxMenu.locals.data)">卸载</li>
     </context-menu>
   </div>
 </template>
 
 <script>
+import path from "path";
+
 const {shell} = require('electron')
 const iconPromise = require('icon-promise');
-const {lnk} = require('./util/dbUtil')
+const {appInfoDb} = require('./util/dbUtil')
+import {getAppList, unInstallApp, toUnInstallPanel} from './util/appUtil'
+
 const Fuse = require('fuse.js')
 import {pinyin} from 'pinyin-pro';
 import contextMenu from 'vue-context-menu'
+import fs from "fs";
 
 export default {
   name: 'index-page',
@@ -49,20 +54,55 @@ export default {
       apps: [],
       keywords: '',
       isSearch: false,
+      loading: {},
     }
   },
   created() {
-    this.apps = this.getLnkData()
+    this.init()
     this.dropFile()
   },
   methods: {
-    uninstallApp() {
-      this.$message.error({
-        showClose: true,
-        message: '这是一条消息提示',
-        duration: '2000'
-      });
+    init() {
+      if (!localStorage.getItem("start_flag")) {
+        //第一次启动
+        this.loading = this.$loading({
+          lock: true,
+          text: '首次启动程序,正在加载应用,请稍等...',
+          spinner: 'el-icon-loading',
+          background: 'rgba(255,255,255,0.7)'
+        });
+        getAppList(this.getAppListCall)
+        localStorage.setItem("start_flag", "true")
+      } else {
+        this.apps = this.getAppData()
+      }
     },
+    getAppListCall(ret) {
+      let apps = this.getAppData()
+      apps.push(...ret)
+      this.apps = apps
+      appInfoDb.set('apps', apps)
+      this.loading.close()
+    },
+    uninstallApp(data) {
+      if (data.UninstallString) {
+        unInstallApp(data.UninstallString, function (data) {
+          console.log(data)
+        })
+      } else {
+        this.$confirm('当前应用不支持卸载,请到系统控制面板卸载.绿色版直接删除文件夹即可', '提示', {
+          confirmButtonText: '跳转到控制面板',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          toUnInstallPanel()
+        }).catch(() => {
+
+        });
+      }
+
+    }
+    ,
     removeApp(index) {
       this.$confirm('此操作只会移除当前应用对其他软件的启动管理,不会卸载或删除.确定要继续吗？', '提示', {
         confirmButtonText: '确定',
@@ -70,35 +110,46 @@ export default {
         type: 'warning'
       }).then(() => {
         this.apps.splice(index, 1)
-        lnk.set('apps', this.apps)
+        appInfoDb.set('apps', this.apps)
       }).catch(() => {
 
       });
-    },
+    }
+    ,
     openDir() {
-      shell.showItemInFolder(this.$refs.ctxMenu.locals.data.exePath)
-    },
+      shell.showItemInFolder(this.$refs.ctxMenu.locals.data.ExePath)
+    }
+    ,
     search() {
       if (this.keywords === '') {
         this.isSearch = false
-        this.apps = this.getLnkData()
+        this.apps = this.getAppData()
       } else {
         const options = {
           includeScore: true,
-          keys: ['appName', 'word']
+          keys: ['DisplayName', 'Word']
         }
-        const fuse = new Fuse(this.getLnkData(), options)
+        const fuse = new Fuse(this.getAppData(), options)
         this.apps = fuse.search(this.keywords)
         this.isSearch = true
       }
-    },
+    }
+    ,
     async getIconInfo(exePath) {
       const {Base64ImageData} = await iconPromise.getIcon256(exePath)
-      return "data:image/png;base64," + Base64ImageData
-    },
+      return Base64ImageData
+    }
+    ,
     async openApp(app) {
-      shell.openExternal(app.lnk)
-    },
+      fs.access(app.ExePath, fs.constants.F_OK, (err) => {
+        if (err) {
+          this.$message.warning("应用不存在或已被删除")
+          return
+        }
+        shell.openExternal(app.ExePath)
+      })
+    }
+    ,
     // 文件拖动
     dropFile() {
       document.addEventListener('drop', (e) => {
@@ -111,10 +162,22 @@ export default {
           const exePath = retLnk.target;
           this.getIconInfo(exePath).then((data) => {
             let appName = name.replace(".lnk", '')
-            const word = pinyin(appName, {pattern: 'first', toneType: 'none'}).replace(/ /g,'')
-            let app = {"appName": appName, "lnk": filePath, "icon": data, "word": word, "exePath": exePath}
-            this.apps.splice(this.apps.length, 1, app)
-            lnk.set('apps', this.apps)
+            const {app} = require('electron').remote
+            const icon = path.join(app.getPath('userData'), 'icons', `${appName}.png`)
+            const dataBuffer = new Buffer(data, 'base64')
+            const write = require('write')
+            write.sync(icon, dataBuffer, {overwrite: true})
+            const word = pinyin(appName, {pattern: 'first', toneType: 'none'}).replace(/ /g, '')
+            let appInfo = {
+              "LegalName": appName,
+              "Lnk": filePath,
+              "Icon": icon,
+              "Word": word,
+              "ExePath": exePath,
+              "Source": "lnk"
+            }
+            this.apps.splice(this.apps.length, 1, appInfo)
+            appInfoDb.set('apps', this.apps)
           })
         }
       });
@@ -122,9 +185,10 @@ export default {
         e.preventDefault();
         e.stopPropagation();
       });
-    },
-    getLnkData() {
-      return Object.keys(lnk.get('apps')).length === 0 ? [] : lnk.get('apps').data
+    }
+    ,
+    getAppData() {
+      return Object.keys(appInfoDb.get('apps')).length === 0 ? [] : appInfoDb.get('apps').data
     }
   }
 }

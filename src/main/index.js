@@ -24,6 +24,9 @@ function createWindow() {
         width: 1000,
         // frame: false,
         maximizable: true,
+        webPreferences: {
+            webSecurity: false,
+        }
     })
     mainWindow.loadURL(winURL)
     mainWindow.on('closed', () => {
@@ -51,6 +54,7 @@ app.on('ready', async () => {
     })
 
 })
+
 /**
  * Auto Updater
  *
