@@ -27,7 +27,7 @@
     <context-menu id="context-menu" ref="ctxMenu">
       <li @click="openApp($refs.ctxMenu.locals.data)">打开</li>
       <li @click="openDir()">打开文件夹</li>
-      <li @click="removeApp($refs.ctxMenu.locals.index)">删除</li>
+      <li @click="removeApp($refs.ctxMenu.locals.index)">移除</li>
       <li @click="uninstallApp($refs.ctxMenu.locals.data)">卸载</li>
     </context-menu>
   </div>
@@ -39,7 +39,7 @@ import path from "path";
 const {shell} = require('electron')
 const iconPromise = require('icon-promise');
 const {appInfoDb} = require('./util/dbUtil')
-import {getAppList, unInstallApp, toUnInstallPanel} from './util/appUtil'
+import {getAppList, unInstallApp, toUnInstallPanel, getAppData, getLnkAppData, getRegAppData} from './util/appUtil'
 
 const Fuse = require('fuse.js')
 import {pinyin} from 'pinyin-pro';
@@ -74,20 +74,19 @@ export default {
         getAppList(this.getAppListCall)
         localStorage.setItem("start_flag", "true")
       } else {
-        this.apps = this.getAppData()
+        this.apps = getAppData()
       }
     },
     getAppListCall(ret) {
-      let apps = this.getAppData()
+      let apps = getAppData()
       apps.push(...ret)
       this.apps = apps
-      appInfoDb.set('apps', apps)
+      appInfoDb.set('appsReg', apps)
       this.loading.close()
     },
     uninstallApp(data) {
       if (data.UninstallString) {
         unInstallApp(data.UninstallString, function (data) {
-          console.log(data)
         })
       } else {
         this.$confirm('当前应用不支持卸载,请到系统控制面板卸载.绿色版直接删除文件夹即可', '提示', {
@@ -109,8 +108,19 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
+        const currApp = this.apps[index]
         this.apps.splice(index, 1)
-        appInfoDb.set('apps', this.apps)
+        if (currApp.Source === 'lnk') {
+          let lnkApps = getLnkAppData()
+          lnkApps.splice(index, 1)
+          appInfoDb.set('appsLnk', lnkApps)
+        } else if (currApp.Source === 'registry') {
+          let lnkApps = getLnkAppData()
+          let regApps = getRegAppData()
+          regApps.splice(index - lnkApps.length, 1)
+          appInfoDb.set('appsReg', regApps)
+        }
+
       }).catch(() => {
 
       });
@@ -123,13 +133,13 @@ export default {
     search() {
       if (this.keywords === '') {
         this.isSearch = false
-        this.apps = this.getAppData()
+        this.apps = getAppData()
       } else {
         const options = {
           includeScore: true,
           keys: ['DisplayName', 'Word']
         }
-        const fuse = new Fuse(this.getAppData(), options)
+        const fuse = new Fuse(getAppData(), options)
         this.apps = fuse.search(this.keywords)
         this.isSearch = true
       }
@@ -152,34 +162,37 @@ export default {
     ,
     // 文件拖动
     dropFile() {
-      document.addEventListener('drop', (e) => {
+      document.addEventListener('drop', async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        let addLnkApps = []
         for (const f of e.dataTransfer.files) {
           const filePath = f.path
           const name = f.name
           const retLnk = shell.readShortcutLink(filePath)
           const exePath = retLnk.target;
-          this.getIconInfo(exePath).then((data) => {
-            let appName = name.replace(".lnk", '')
-            const {app} = require('electron').remote
-            const icon = path.join(app.getPath('userData'), 'icons', `${appName}.png`)
-            const dataBuffer = new Buffer(data, 'base64')
-            const write = require('write')
-            write.sync(icon, dataBuffer, {overwrite: true})
-            const word = pinyin(appName, {pattern: 'first', toneType: 'none'}).replace(/ /g, '')
-            let appInfo = {
-              "LegalName": appName,
-              "Lnk": filePath,
-              "Icon": icon,
-              "Word": word,
-              "ExePath": exePath,
-              "Source": "lnk"
-            }
-            this.apps.splice(this.apps.length, 1, appInfo)
-            appInfoDb.set('apps', this.apps)
-          })
+          const data = await this.getIconInfo(exePath)
+          let appName = name.replace(".lnk", '')
+          const {app} = require('electron').remote
+          const icon = path.join(app.getPath('userData'), 'icons', `${appName}.png`)
+          const dataBuffer = new Buffer(data, 'base64')
+          const write = require('write')
+          write.sync(icon, dataBuffer, {overwrite: true})
+          const word = pinyin(appName, {pattern: 'first', toneType: 'none'}).replace(/ /g, '')
+          let appInfo = {
+            "LegalName": appName,
+            "Lnk": filePath,
+            "Icon": icon,
+            "Word": word,
+            "ExePath": exePath,
+            "Source": "lnk"
+          }
+          addLnkApps.push(appInfo)
         }
+        let lnkApps = getLnkAppData()
+        lnkApps.push(...addLnkApps)
+        appInfoDb.set('appsLnk', lnkApps)
+        this.init()
       });
       document.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -187,9 +200,7 @@ export default {
       });
     }
     ,
-    getAppData() {
-      return Object.keys(appInfoDb.get('apps')).length === 0 ? [] : appInfoDb.get('apps').data
-    }
+
   }
 }
 </script>

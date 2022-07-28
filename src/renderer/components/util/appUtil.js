@@ -1,4 +1,5 @@
 import {pinyin} from "pinyin-pro";
+import {appInfoDb} from "./dbUtil";
 
 /**
  * 代码参考
@@ -28,7 +29,7 @@ function powershell(cmd, callback) {
     })
 }
 
-function getAppList(callback) {
+export function getAppList(callback) {
     let filterValues = "Select-Object DisplayName,DisplayIcon,UninstallString,DisplayVersion,InstallDate,Publisher,InstallLocation"
     let localMatcine = `Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | ${filterValues}`;
     let currentUser = `Get-ItemProperty HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | ${filterValues}`;
@@ -86,7 +87,7 @@ function filterApps(dict) {
 
 }
 
-function unInstallApp(command, callback) {
+export function unInstallApp(command, callback) {
     command = command.replace(/(^[A-z]:\\[\S ]+\\\S+)($| )/, '"$1"$2')
     child.exec(command, {encoding: 'buffer'}, (err, stdout, stderr) => {
         if (err) {
@@ -95,8 +96,8 @@ function unInstallApp(command, callback) {
     })
 }
 
-function toUnInstallPanel() {
-    let command = 'control.exe /name Microsoft.ProgramsAndFeatures'
+export function toUnInstallPanel() {
+    let command = 'control /name Microsoft.ProgramsAndFeatures'
     command = command.replace(/(^[A-z]:\\[\S ]+\\\S+)($| )/, '"$1"$2')
     child.exec(command, {encoding: 'buffer'}, (err, stdout, stderr) => {
         if (err) {
@@ -105,4 +106,17 @@ function toUnInstallPanel() {
     })
 }
 
-export {getAppList, unInstallApp, toUnInstallPanel}
+export function getAppData() {
+    let appsLnk = Object.keys(appInfoDb.get('appsLnk')).length === 0 ? [] : appInfoDb.get('appsLnk').data
+    let appsReg = Object.keys(appInfoDb.get('appsReg')).length === 0 ? [] : appInfoDb.get('appsReg').data
+    appsLnk.push(...appsReg)
+    return appsLnk
+}
+
+export function getLnkAppData() {
+    return Object.keys(appInfoDb.get('appsLnk')).length === 0 ? [] : appInfoDb.get('appsLnk').data
+}
+
+export function getRegAppData() {
+    return Object.keys(appInfoDb.get('appsReg')).length === 0 ? [] : appInfoDb.get('appsReg').data
+}
