@@ -1,30 +1,27 @@
 <template>
-  <LaunCher/>
+  <div id="app">
+    <router-view></router-view>
+  </div>
 </template>
 
 <script>
-import LaunCher from './components/LaunCher.vue'
-
 export default {
-  name: 'App',
-  components: {
-    LaunCher
-  }
+  name: 'App'
 }
 </script>
 
 <style>
+/* CSS */
 html {
+  background-color: #2b2d2f;
   height: 100%;
-  background-image: linear-gradient(141deg, #9fb8ad 0%, #1fc8db 51%, #2cb5e8 75%);
-  background-attachment: fixed;
 }
 
 body {
   display: block;
   margin: 0;
+  padding: 0;
 }
-
 
 /* 滚动条美化 */
 ::-webkit-scrollbar { /*滚动条整体样式*/

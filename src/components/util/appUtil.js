@@ -1,5 +1,7 @@
 import {pinyin} from "pinyin-pro";
 import {appInfoDb} from "./dbUtil";
+import installedPaths from "installed-win-apps";
+import {shell} from "electron";
 
 /**
  * 代码参考
@@ -14,8 +16,8 @@ const write = require('write')
 
 export default {
     async getIconInfo(exePath) {
-        if(process.env.NODE_ENV === 'production'){
-            iconPromise.overrideExtractorPath(path.join(__dirname,"../app.asar.unpacked/node_modules/icon-promise/bin"),'IconExtractor.exe')
+        if (process.env.NODE_ENV === 'production') {
+            iconPromise.overrideExtractorPath(path.join(__dirname, "../app.asar.unpacked/node_modules/icon-promise/bin"), 'IconExtractor.exe')
         }
         const {Base64ImageData} = await iconPromise.getIcon256(exePath)
         return Base64ImageData
@@ -119,12 +121,54 @@ export default {
         appsLnk.push(...appsReg)
         return appsLnk
     },
-
+    getMenuAppData() {
+        return Object.keys(appInfoDb.get('appsMenu')).length === 0 ? [] : appInfoDb.get('appsMenu').data
+    },
     getLnkAppData() {
         return Object.keys(appInfoDb.get('appsLnk')).length === 0 ? [] : appInfoDb.get('appsLnk').data
     },
 
     getRegAppData() {
         return Object.keys(appInfoDb.get('appsReg')).length === 0 ? [] : appInfoDb.get('appsReg').data
+    },
+    getStartMenuApps() {
+        installedPaths.getAllPaths('', true).then(async (lnkApps) => {
+            let appArr = []
+            let keys = []
+            for (const lnkApp of lnkApps) {
+                try {
+                    const retLnk = shell.readShortcutLink(lnkApp.lnk)
+                    const exePath = retLnk.target;
+                    let index = lnkApp.lnk.lastIndexOf('\\');
+                    const name = lnkApp.lnk.substring(index + 1, lnkApp.lnk.length - 4)
+                    if (name.indexOf('卸载') >= 0 || name.indexOf('uninstall') >= 0) {
+                        continue
+                    }
+                    if (keys.indexOf(name) >= 0) {
+                        continue
+                    }
+                    if (exePath) {
+                        let dict = {}
+                        const base64ImageData = await this.getIconInfo(exePath)
+
+                        const icon = path.join(require('@electron/remote').app.getPath('userData'), 'icons', `menu_${name}.png`)
+                        const dataBuffer = new Buffer(base64ImageData, 'base64')
+                        write.sync(icon, dataBuffer, {overwrite: true})
+                        dict.DisplayName = name
+                        dict.Lnk = lnkApp.lnk
+                        dict.ExePath = exePath
+                        dict.Word = pinyin(dict.DisplayName, {pattern: 'first', toneType: 'none'}).replace(/ /g, '')
+                        dict.Icon = icon
+                        dict.Source = "menu"
+                        keys.push(name)
+                        appArr.push(dict)
+                    }
+                } catch (e) {
+                    console.log(e)
+                }
+            }
+            appInfoDb.set('appsMenu', appArr)
+            console.log('开始菜单app加载完成..')
+        })
     }
 }

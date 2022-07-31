@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="page">
     <div class="search">
       <el-input v-model="keywords" placeholder="搜索" @input="search"></el-input>
     </div>
@@ -44,8 +44,10 @@ import Fuse from 'fuse.js'
 import {pinyin} from 'pinyin-pro';
 import contextMenu from 'vue3-ctx-menu'
 import fs from "fs";
+
+
 export default {
-  name: 'LaunCher',
+  name: 'launcher-page',
   components: {contextMenu},
   data() {
     return {
@@ -55,13 +57,14 @@ export default {
       loading: {},
     }
   },
-  created() {
+  async mounted() {
     this.init()
     this.dropFile()
   },
   methods: {
     init() {
       if (!localStorage.getItem("start_flag")) {
+        appUtil.getStartMenuApps()
         //第一次启动
         this.loading = this.$loading({
           lock: true,
@@ -198,8 +201,14 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
+.page {
+  background-image: linear-gradient(141deg, #9fb8ad 0%, #1fc8db 51%, #2cb5e8 75%);
+  background-attachment: fixed;
+}
+
 .parent {
+
   display: flex;
   flex-flow: row wrap;
   align-content: center;
