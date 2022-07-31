@@ -20,7 +20,13 @@ export default {
             iconPromise.overrideExtractorPath(path.join(__dirname, "../app.asar.unpacked/node_modules/icon-promise/bin"), 'IconExtractor.exe')
         }
         const {Base64ImageData} = await iconPromise.getIcon256(exePath)
-        return Base64ImageData
+        const dataBuffer = new Buffer(Base64ImageData, 'base64')
+        if (dataBuffer.length / 1000 >= 2.5) {
+            return Base64ImageData
+        } else {
+            const {Base64ImageData} = await iconPromise.getIcon48(exePath)
+            return Base64ImageData
+        }
     },
     powershell(cmd, callback) {
         const ps = child.spawn('powershell', ['-NoProfile', '-Command', cmd], {encoding: 'buffer'})

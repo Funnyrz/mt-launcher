@@ -101,7 +101,7 @@ async function createSearchWindow() {
     // Create the browser window.
     searchWin = new BrowserWindow({
         width:600,
-        height:50,
+        height:500,
         frame: false,
         show: false,
         resizable: false,

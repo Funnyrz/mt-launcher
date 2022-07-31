@@ -203,12 +203,11 @@ export default {
 
 <style scoped>
 .page {
-  background-image: linear-gradient(141deg, #9fb8ad 0%, #1fc8db 51%, #2cb5e8 75%);
-  background-attachment: fixed;
+  max-height: 100%;
+
 }
 
 .parent {
-
   display: flex;
   flex-flow: row wrap;
   align-content: center;

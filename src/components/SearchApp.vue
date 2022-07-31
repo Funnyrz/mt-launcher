@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <input v-model="keywords" placeholder="输入搜索应用得名字或拼音缩写" @input="search" class="search-keys"
+    <input v-model="keywords" placeholder="输入搜索应用的名字或拼音缩写" @input="search" class="search-keys"
            ref='searchKeys'/>
     <div class="appList" v-for="(app,index) in apps" :key="index" @click="openApp(app.item)">
       <img :src="app.item.Icon" alt="icon" width="50"/>
@@ -8,6 +8,9 @@
         <div>{{ app.item.DisplayName }}</div>
         <div class="exe-path">{{ app.item.ExePath }}</div>
       </div>
+    </div>
+    <div class="emptyData" v-if="apps.length===0">
+      暂无数据
     </div>
   </div>
 </template>
@@ -41,13 +44,8 @@ export default {
         }
         const fuse = new Fuse(menuAppData, options)
         this.apps = fuse.search(this.keywords)
-        let win = require('@electron/remote').getCurrentWindow();
-        win.setBounds({width: 600, height: 500})
-        win.center()
-      } else {
-        let win = require('@electron/remote').getCurrentWindow();
-        win.setBounds({width: 600, height: 50})
-        win.center()
+      }else {
+        this.apps = []
       }
     }, async openApp(app) {
       fs.access(app.ExePath, fs.constants.F_OK, (err) => {
@@ -64,6 +62,7 @@ export default {
 
 <style scoped>
 .page {
+  height: 500px;
   background-color: #2b2d2f;
 }
 
@@ -117,5 +116,12 @@ input {
   font-weight: bold;
   font-size: 16px;
   font-family: "Microsoft soft", serif;
+}
+.emptyData{
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  color: #f0f2f5;
 }
 </style>
