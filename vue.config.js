@@ -7,6 +7,9 @@ module.exports = {
                 // asarUnpack: [
                 //     "node_modules/icon-promise/**/*"
                 // ],
+                extraResources: [
+                    {from: './icon.png', to: '../icon.png'}
+                ]
             },
         }
     }

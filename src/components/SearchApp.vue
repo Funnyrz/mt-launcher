@@ -2,16 +2,18 @@
   <div class="page">
     <input v-model="keywords" placeholder="输入搜索应用的名字或拼音缩写" @input="search" class="search-keys"
            ref='searchKeys'/>
-    <div class="appList" v-for="(app,index) in apps" :key="index" @click="openApp(app.item)">
-      <img :src="app.item.Icon" alt="icon" width="50"/>
-      <div class="desc">
-        <div>{{ app.item.DisplayName }}</div>
-        <div class="exe-path">{{ app.item.ExePath }}</div>
+    <el-scrollbar>
+      <div class="appList" v-for="(app,index) in apps" :key="index" @click="openApp(app.item)" @keyup.down="keyDown">
+        <img :src="app.item.Icon" alt="icon" width="50"/>
+        <div class="desc">
+          <div>{{ app.item.DisplayName }}</div>
+          <div class="exe-path">{{ app.item.ExePath }}</div>
+        </div>
       </div>
-    </div>
-    <div class="emptyData" v-if="apps.length===0">
-      暂无数据
-    </div>
+      <div class="emptyData" v-if="apps.length===0">
+        暂无数据
+      </div>
+    </el-scrollbar>
   </div>
 </template>
 
@@ -32,9 +34,37 @@ export default {
   },
   mounted() {
     this.$refs.searchKeys.focus()
-
+    this.keyDown()
   },
   methods: {
+    keyDown() {
+      document.onkeydown = (e) => {
+        //事件对象兼容
+        let e1 = e || event || window.event
+        if (e1 && e1.keyCode == 13) {
+          //回车键
+          let appActDiv = document.getElementsByClassName("activate")[0]
+          appActDiv.click()
+          require('@electron/remote').getCurrentWindow().hide()
+        }
+        if (e1 && e1.keyCode == 38) {
+          // 按上箭头
+          let appActDiv = document.getElementsByClassName("activate")[0]
+          if (appActDiv.previousElementSibling !== null) {
+            appActDiv.classList.remove('activate')
+            appActDiv.previousElementSibling.classList.add('activate')
+          }
+
+        } else if (e1 && e1.keyCode == 40) {
+          // 按下箭头
+          let appActDiv = document.getElementsByClassName("activate")[0]
+          if (appActDiv.nextElementSibling !== null) {
+            appActDiv.classList.remove('activate')
+            appActDiv.nextElementSibling.classList.add('activate')
+          }
+        }
+      }
+    },
     search() {
       if (this.keywords !== '') {
         const menuAppData = appUtil.getMenuAppData()
@@ -44,7 +74,12 @@ export default {
         }
         const fuse = new Fuse(menuAppData, options)
         this.apps = fuse.search(this.keywords)
-      }else {
+        this.$nextTick(() => {
+          let appDiv = document.getElementsByClassName("appList")[0]
+          appDiv.classList.add('activate')
+        })
+
+      } else {
         this.apps = []
       }
     }, async openApp(app) {
@@ -62,6 +97,8 @@ export default {
 
 <style scoped>
 .page {
+  overflow-y: hidden;
+  overflow-x: hidden;
   height: 500px;
   background-color: #2b2d2f;
 }
@@ -70,9 +107,14 @@ export default {
   display: flex;
 }
 
-.appList:hover {
+.activate {
   cursor: pointer;
   background-color: #85878a;
+}
+
+.appList:hover {
+  cursor: pointer;
+  /*background-color: #85878a;*/
 }
 
 .appList > img {
@@ -117,7 +159,8 @@ input {
   font-size: 16px;
   font-family: "Microsoft soft", serif;
 }
-.emptyData{
+
+.emptyData {
   margin-top: 20px;
   text-align: center;
   font-weight: bold;

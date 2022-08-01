@@ -147,7 +147,7 @@ export default {
                     const exePath = retLnk.target;
                     let index = lnkApp.lnk.lastIndexOf('\\');
                     const name = lnkApp.lnk.substring(index + 1, lnkApp.lnk.length - 4)
-                    if (name.indexOf('卸载') >= 0 || name.indexOf('uninstall') >= 0) {
+                    if (name.indexOf('卸载') >= 0 || name.toLowerCase().indexOf('uninstall') >= 0) {
                         continue
                     }
                     if (keys.indexOf(name) >= 0) {

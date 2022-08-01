@@ -1,8 +1,9 @@
 'use strict'
 
-import {app, protocol, BrowserWindow, globalShortcut} from 'electron'
+import {app, protocol, BrowserWindow, globalShortcut, Menu, Tray} from 'electron'
 import {createProtocol} from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, {VUEJS3_DEVTOOLS} from 'electron-devtools-installer'
+import path from 'path'
 
 require('@electron/remote/main').initialize()
 
@@ -12,6 +13,12 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 protocol.registerSchemesAsPrivileged([
     {scheme: 'app', privileges: {secure: true, standard: true}}
 ])
+
+
+//用一个 Tray 来表示一个图标,这个图标处于正在运行的系统的通知区 ，通常被添加到一个 context menu 上.
+//托盘对象
+let tray = null;
+
 let indexWindow
 
 async function createIndexWindow() {
@@ -29,6 +36,58 @@ async function createIndexWindow() {
             webSecurity: false
         }
     })
+
+    // 关闭默认菜单
+    indexWindow.setMenu(null);
+
+    // 窗口关闭的监听
+    indexWindow.on('closed', (event) => {
+        console.log(event)
+        indexWindow = null;
+    });
+    // 触发关闭时触发
+    indexWindow.on('close', (event) => {
+        // 截获 close 默认行为
+        event.preventDefault();
+        // 点击关闭时触发close事件，我们按照之前的思路在关闭时，隐藏窗口，隐藏任务栏窗口
+        indexWindow.hide();
+        indexWindow.setSkipTaskbar(true);
+
+    });
+    // 触发显示时触发
+    indexWindow.on('show', () => {
+    });
+    // 触发隐藏时触发
+    indexWindow.on('hide', () => {
+    });
+    tray = new Tray(path.resolve('icon.png'));
+    // 新建托盘
+    // 托盘名称
+    tray.setToolTip(app.getName());
+    // 托盘菜单
+    const contextMenu = Menu.buildFromTemplate([{
+        label: '显示',
+        click: () => {
+            indexWindow.show()
+        }
+    },
+        {
+            label: '退出',
+            click: () => {
+                indexWindow.destroy()
+            }
+        }
+    ]);
+    // 载入托盘菜单
+    tray.setContextMenu(contextMenu);
+    // 双击触发
+    tray.on('double-click', () => {
+        console.log(indexWindow.isVisible())
+        // 双击通知区图标实现应用的显示或隐藏
+        indexWindow.isVisible() && !indexWindow.isMinimized() ? indexWindow.hide() : indexWindow.show()
+        indexWindow.isVisible() && !indexWindow.isMinimized() ? indexWindow.setSkipTaskbar(false) : indexWindow.setSkipTaskbar(true);
+    });
+
     require('@electron/remote/main').enable(indexWindow.webContents)
     if (process.env.WEBPACK_DEV_SERVER_URL) {
         // Load the url of the dev server if in development mode
@@ -69,13 +128,13 @@ app.on('ready', async () => {
             console.error('Vue Devtools failed to install:', e.toString())
         }
     }
-    globalShortcut.register('Alt+D', function () {
-        indexWindow.show()
+    globalShortcut.register('Ctrl+Alt+D', function () {
+        indexWindow.isVisible() ? indexWindow.hide() : indexWindow.show()
     })
     globalShortcut.register('Alt+S', function () {
         //不在任务栏显示
         searchWin.setSkipTaskbar(true)
-        searchWin.show()
+        searchWin.isVisible() ? searchWin.hide() : searchWin.show()
     })
     createIndexWindow()
     createSearchWindow()
@@ -100,11 +159,12 @@ let searchWin
 async function createSearchWindow() {
     // Create the browser window.
     searchWin = new BrowserWindow({
-        width:600,
-        height:500,
+        width: 600,
+        height: 500,
         frame: false,
         show: false,
         resizable: false,
+        parent: indexWindow,
         webPreferences: {
             // Use pluginOptions.nodeIntegration, leave this alone
             // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info

@@ -13,8 +13,7 @@ export default {
 <style>
 /* CSS */
 html {
-  background-image: linear-gradient(141deg, #9fb8ad 0%, #1fc8db 51%, #2cb5e8 75%);
-  background-attachment: fixed;
+  background-color: #2b2d2f;
   height: 100%;
 }
 
