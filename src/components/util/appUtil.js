@@ -2,7 +2,6 @@ import {pinyin} from "pinyin-pro";
 import {appInfoDb} from "./dbUtil";
 import installedPaths from "installed-win-apps";
 import {shell} from "electron";
-
 /**
  * 代码参考
  * https://github.com/zhujiaming/uTools-AppUninstaller/blob/master/preload.js
@@ -27,6 +26,10 @@ export default {
             const {Base64ImageData} = await iconPromise.getIcon48(exePath)
             return Base64ImageData
         }
+    },
+    async getIconInfo48(exePath) {
+        const {Base64ImageData} = await iconPromise.getIcon48(exePath)
+        return Base64ImageData
     },
     powershell(cmd, callback) {
         const ps = child.spawn('powershell', ['-NoProfile', '-Command', cmd], {encoding: 'buffer'})
@@ -155,7 +158,7 @@ export default {
                     }
                     if (exePath) {
                         let dict = {}
-                        const base64ImageData = await this.getIconInfo(exePath)
+                        const base64ImageData = await this.getIconInfo48(exePath)
 
                         const icon = path.join(require('@electron/remote').app.getPath('userData'), 'icons', `menu_${name}.png`)
                         const dataBuffer = new Buffer(base64ImageData, 'base64')

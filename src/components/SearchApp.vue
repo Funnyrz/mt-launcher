@@ -47,6 +47,10 @@ export default {
           appActDiv.click()
           require('@electron/remote').getCurrentWindow().hide()
         }
+        if (e1 && e1.keyCode == 27) {
+          //Esc
+          require('@electron/remote').getCurrentWindow().hide()
+        }
         if (e1 && e1.keyCode == 38) {
           // 按上箭头
           let appActDiv = document.getElementsByClassName("activate")[0]
@@ -73,11 +77,13 @@ export default {
           keys: ['DisplayName', 'Word']
         }
         const fuse = new Fuse(menuAppData, options)
-        this.apps = fuse.search(this.keywords)
-        this.$nextTick(() => {
-          let appDiv = document.getElementsByClassName("appList")[0]
-          appDiv.classList.add('activate')
-        })
+        this.apps = fuse.search("^"+this.keywords)
+        if (this.apps.length > 0) {
+          this.$nextTick(() => {
+            let appDiv = document.getElementsByClassName("appList")[0]
+            appDiv.classList.add('activate')
+          })
+        }
 
       } else {
         this.apps = []
